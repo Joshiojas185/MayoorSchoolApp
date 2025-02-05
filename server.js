@@ -341,24 +341,29 @@ const WebSocket = require("ws");
 const db = require("./database");
 
 const app = express();
-const PORT = process.env.PORT || 5000; // Use Railway's assigned port or fallback to 5000
-const WSPORT = process.env.WSPORT || 3500; // Use a different port for WebSocket or fallback to 3500
+const PORT = process.env.PORT || 5000;
+const WSPORT = process.env.WSPORT || 3500;
 
 // Serve frontend files
 app.use(express.static("frontend"));
 
 // Start HTTP Server
-const server = app.listen(PORT, () => {
+// const server = app.listen(PORT, () => {
+//   console.log(`✅ Server is running on http://localhost:${PORT}`);
+// });
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
 });
 
 // WebSocket Server
-const wss = new WebSocket.Server({ port: WSPORT }, () => {
-  console.log(`✅ WebSocket server is running on ws://localhost:${WSPORT}`);
-});
+// const wss = new WebSocket.Server({ port: WSPORT }, () => {
+//   console.log(`✅ WebSocket server is running on ws://localhost:${WSPORT}`);
+// });
+const wss = new WebSocket.Server({ server });
 
 // Store active teachers
 let activeTeachers = {};
+let emailCounter = 1; // Start email numbering from 1
 
 // WebSocket Connection Handling
 wss.on("connection", (ws) => {
@@ -366,8 +371,10 @@ wss.on("connection", (ws) => {
 
   ws.on("message", (message) => {
     try {
-      const { name, email } = JSON.parse(message); // Expect JSON input
-      if (name && email) {
+      const { name } = JSON.parse(message); // Expecting only name as input
+      if (name) {
+        const email = `abc${emailCounter}@gmail.com`;
+        emailCounter++; // Increment for the next user
         const currentTime = new Date();
 
         db.query(
