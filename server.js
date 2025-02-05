@@ -342,7 +342,6 @@ const db = require("./database");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const WSPORT = process.env.WSPORT || 3500;
 
 // Serve frontend files
 app.use(express.static("frontend"));
@@ -352,7 +351,7 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
 });
 
-// WebSocket Server
+// WebSocket Server (attached to HTTP server)
 const wss = new WebSocket.Server({ server });
 
 let activeTeachers = {};
@@ -362,13 +361,15 @@ wss.on("connection", (ws) => {
   console.log("🔵 New client connected");
 
   ws.on("message", (message) => {
+    console.log("🔹 Received message:", message); // Debugging line
     try {
-      const parsedMessage = JSON.parse(message);
-      if (!parsedMessage.name) {
-        throw new Error("Name is missing in the JSON message");
+      // Since the message is a plain string, no need to parse JSON
+      const name = message.trim();
+      
+      if (!name) {
+        throw new Error("Name is missing in the message");
       }
 
-      const name = parsedMessage.name.trim();
       const email = `abc${emailCounter}@gmail.com`;
       emailCounter++;
       const currentTime = new Date();
@@ -386,7 +387,7 @@ wss.on("connection", (ws) => {
         }
       );
     } catch (error) {
-      console.error("❌ Invalid message format:", error.message);
+      console.error("❌ Error handling message:", error.message);
     }
   });
 
