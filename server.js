@@ -63,7 +63,7 @@ wss.on("connection", (ws) => {
     for (let teacher in activeTeachers) {
       if (activeTeachers[teacher] === ws) {
         // Set last seen time to current timestamp when teacher disconnects
-        const lastSeenTime = new Date();
+        const lastSeenTime = new Date().toLocaleTimeString;
 
         db.query("UPDATE teachers SET status='inactive', last_seen=? WHERE name=?", [lastSeenTime, teacher], (err) => {
           if (err) {
