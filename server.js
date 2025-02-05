@@ -227,111 +227,111 @@
 
 //Rollback Commit before email
 
-const express = require("express");
-const WebSocket = require("ws");
-const db = require("./database");
-const moment = require("moment-timezone");  // Import moment-timezone
+// const express = require("express");
+// const WebSocket = require("ws");
+// const db = require("./database");
+// const moment = require("moment-timezone");  // Import moment-timezone
 
-const app = express();
-const PORT = process.env.PORT || 5000;
-const WSPORT = process.env.WSPORT || 3500;
+// const app = express();
+// const PORT = process.env.PORT || 5000;
+// const WSPORT = process.env.WSPORT || 3500;
 
-// Serve frontend files
-app.use(express.static("frontend"));
+// // Serve frontend files
+// app.use(express.static("frontend"));
 
-// Start HTTP Server
-const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server is running on http://localhost:${PORT}`);
-});
+// // Start HTTP Server
+// const server = app.listen(PORT, "0.0.0.0", () => {
+//   console.log(`✅ Server is running on http://localhost:${PORT}`);
+// });
 
-// WebSocket Server
-const wss = new WebSocket.Server({ server });
-console.log(`✅ WebSocket server is running`);
+// // WebSocket Server
+// const wss = new WebSocket.Server({ server });
+// console.log(`✅ WebSocket server is running`);
 
-let activeTeachers = {};
+// let activeTeachers = {};
 
-wss.on("connection", (ws) => {
-  console.log("🔵 New client connected");
+// wss.on("connection", (ws) => {
+//   console.log("🔵 New client connected");
 
-  ws.on("message", (message) => {
-    const teacherName = message.toString().trim();
+//   ws.on("message", (message) => {
+//     const teacherName = message.toString().trim();
 
-    if (teacherName) {
-      // Convert to UTC before storing in database
-      const currentTimeUTC = moment().utc().format("YYYY-MM-DD HH:mm:ss");
+//     if (teacherName) {
+//       // Convert to UTC before storing in database
+//       const currentTimeUTC = moment().utc().format("YYYY-MM-DD HH:mm:ss");
 
-      db.query(
-        "INSERT INTO teachers (name, status, last_seen) VALUES (?, 'active', ?) ON DUPLICATE KEY UPDATE status='active', last_seen=?",
-        [teacherName, currentTimeUTC, currentTimeUTC],
-        (err) => {
-          if (err) {
-            console.error("Error inserting/updating teacher in DB:", err);
-            return;
-          }
-          activeTeachers[teacherName] = ws;
-          sendUpdatedList();
-        }
-      );
-    }
-  });
+//       db.query(
+//         "INSERT INTO teachers (name, status, last_seen) VALUES (?, 'active', ?) ON DUPLICATE KEY UPDATE status='active', last_seen=?",
+//         [teacherName, currentTimeUTC, currentTimeUTC],
+//         (err) => {
+//           if (err) {
+//             console.error("Error inserting/updating teacher in DB:", err);
+//             return;
+//           }
+//           activeTeachers[teacherName] = ws;
+//           sendUpdatedList();
+//         }
+//       );
+//     }
+//   });
 
-  ws.on("close", () => {
-    for (let teacher in activeTeachers) {
-      if (activeTeachers[teacher] === ws) {
-        // Convert to UTC before updating in database
-        const lastSeenTimeUTC = moment().utc().format("YYYY-MM-DD HH:mm:ss");
+//   ws.on("close", () => {
+//     for (let teacher in activeTeachers) {
+//       if (activeTeachers[teacher] === ws) {
+//         // Convert to UTC before updating in database
+//         const lastSeenTimeUTC = moment().utc().format("YYYY-MM-DD HH:mm:ss");
 
-        db.query("UPDATE teachers SET status='inactive', last_seen=? WHERE name=?", [lastSeenTimeUTC, teacher], (err) => {
-          if (err) {
-            console.error("Error updating teacher status in DB:", err);
-          }
-          delete activeTeachers[teacher];
-          sendUpdatedList();
-        });
-      }
-    }
-    console.log("🔴 A client disconnected");
-  });
-});
+//         db.query("UPDATE teachers SET status='inactive', last_seen=? WHERE name=?", [lastSeenTimeUTC, teacher], (err) => {
+//           if (err) {
+//             console.error("Error updating teacher status in DB:", err);
+//           }
+//           delete activeTeachers[teacher];
+//           sendUpdatedList();
+//         });
+//       }
+//     }
+//     console.log("🔴 A client disconnected");
+//   });
+// });
 
-// Function to send updated teacher list to all connected clients
-function sendUpdatedList() {
-  db.query(
-    "SELECT name, status, last_seen FROM teachers",
-    (err, results) => {
-      if (err) {
-        console.error("Error fetching teacher list from DB:", err);
-        return;
-      }
+// // Function to send updated teacher list to all connected clients
+// function sendUpdatedList() {
+//   db.query(
+//     "SELECT name, status, last_seen FROM teachers",
+//     (err, results) => {
+//       if (err) {
+//         console.error("Error fetching teacher list from DB:", err);
+//         return;
+//       }
 
-      const formattedResults = results.map((teacher) => {
-        // Convert UTC to IST
-        const lastSeenIST = moment(teacher.last_seen).tz("Asia/Kolkata").format("YYYY-MM-DD HH:mm:ss");
+//       const formattedResults = results.map((teacher) => {
+//         // Convert UTC to IST
+//         const lastSeenIST = moment(teacher.last_seen).tz("Asia/Kolkata").format("YYYY-MM-DD HH:mm:ss");
 
-        const lastSeen = new Date(lastSeenIST);
-        const currentDate = new Date();
+//         const lastSeen = new Date(lastSeenIST);
+//         const currentDate = new Date();
 
-        // Check if the date is today
-        if (lastSeen.toDateString() === currentDate.toDateString()) {
-          teacher.last_seen = lastSeen.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        } else {
-          const options = { weekday: "short", hour: "2-digit", minute: "2-digit" };
-          teacher.last_seen = lastSeen.toLocaleString("en-US", options);
-        }
-        return teacher;
-      });
+//         // Check if the date is today
+//         if (lastSeen.toDateString() === currentDate.toDateString()) {
+//           teacher.last_seen = lastSeen.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+//         } else {
+//           const options = { weekday: "short", hour: "2-digit", minute: "2-digit" };
+//           teacher.last_seen = lastSeen.toLocaleString("en-US", options);
+//         }
+//         return teacher;
+//       });
 
-      console.log("Sending updated teacher list:", formattedResults);
-      const data = JSON.stringify(formattedResults);
+//       console.log("Sending updated teacher list:", formattedResults);
+//       const data = JSON.stringify(formattedResults);
 
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(data);
-        }
-      });
-    }
-  );
-}
+//       wss.clients.forEach((client) => {
+//         if (client.readyState === WebSocket.OPEN) {
+//           client.send(data);
+//         }
+//       });
+//     }
+//   );
+// }
 
 
 //Commit for adding email
