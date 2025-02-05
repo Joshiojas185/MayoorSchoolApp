@@ -348,50 +348,47 @@ const WSPORT = process.env.WSPORT || 3500;
 app.use(express.static("frontend"));
 
 // Start HTTP Server
-// const server = app.listen(PORT, () => {
-//   console.log(`✅ Server is running on http://localhost:${PORT}`);
-// });
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
 });
 
 // WebSocket Server
-// const wss = new WebSocket.Server({ port: WSPORT }, () => {
-//   console.log(`✅ WebSocket server is running on ws://localhost:${WSPORT}`);
-// });
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ port: WSPORT }, () => {
+  console.log(`✅ WebSocket server is running on ws://localhost:${WSPORT}`);
+});
 
-// Store active teachers
 let activeTeachers = {};
-let emailCounter = 1; // Start email numbering from 1
+let emailCounter = 1; // Counter for generating unique emails
 
-// WebSocket Connection Handling
 wss.on("connection", (ws) => {
   console.log("🔵 New client connected");
 
   ws.on("message", (message) => {
     try {
-      const { name } = JSON.parse(message); // Expecting only name as input
-      if (name) {
-        const email = `abc${emailCounter}@gmail.com`;
-        emailCounter++; // Increment for the next user
-        const currentTime = new Date();
-
-        db.query(
-          "INSERT INTO teachers (name, email, status, last_seen) VALUES (?, ?, 'active', ?) ON DUPLICATE KEY UPDATE status='active', last_seen=?",
-          [name, email, currentTime, currentTime],
-          (err) => {
-            if (err) {
-              console.error("❌ Error inserting/updating teacher in DB:", err);
-              return;
-            }
-            activeTeachers[`${name}_${email}`] = ws;
-            sendUpdatedList();
-          }
-        );
+      const parsedMessage = JSON.parse(message);
+      if (!parsedMessage.name) {
+        throw new Error("Name is missing in the JSON message");
       }
+
+      const name = parsedMessage.name.trim();
+      const email = `abc${emailCounter}@gmail.com`;
+      emailCounter++;
+      const currentTime = new Date();
+
+      db.query(
+        "INSERT INTO teachers (name, email, status, last_seen) VALUES (?, ?, 'active', ?) ON DUPLICATE KEY UPDATE status='active', last_seen=?",
+        [name, email, currentTime, currentTime],
+        (err) => {
+          if (err) {
+            console.error("❌ Error inserting/updating teacher in DB:", err);
+            return;
+          }
+          activeTeachers[`${name}_${email}`] = ws;
+          sendUpdatedList();
+        }
+      );
     } catch (error) {
-      console.error("❌ Invalid message format:", error);
+      console.error("❌ Invalid message format:", error.message);
     }
   });
 
@@ -418,7 +415,6 @@ wss.on("connection", (ws) => {
   });
 });
 
-// Function to send updated teacher list to all clients
 function sendUpdatedList() {
   db.query("SELECT name, email, status, last_seen FROM teachers", (err, results) => {
     if (err) {
