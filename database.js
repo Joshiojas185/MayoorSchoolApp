@@ -33,7 +33,10 @@ const db = mysql.createConnection({
   password: process.env.DB_PASSWORD || "zk4RMpbk627DHvSP0b15",
   database: process.env.DB_NAME || "bvyx3kxnlz1n4stvraap",
   port: process.env.DB_PORT || 3306, // Default MySQL port
-  multipleStatements: true
+  multipleStatements: true,
+  waitForConnections: true, // Wait for a connection if the pool is full
+  connectionLimit: 100, // Set the maximum number of connections in the pool
+  queueLimit: 0
 });
 // Connect to MySQL
 db.connect((err) => {
