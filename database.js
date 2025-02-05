@@ -25,7 +25,6 @@
 
 // module.exports = db;
 
-
 const mysql = require("mysql2");
 // Create a MySQL connection using Clever Cloud credentials
 const db = mysql.createConnection({
@@ -44,4 +43,4 @@ db.connect((err) => {
   }
   console.log(":white_check_mark: Connected to Clever Cloud MySQL!");
 });
-module.exports = db;
+module.exports = db; 

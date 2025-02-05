@@ -15,14 +15,20 @@ app.use(express.static("frontend"));
 
 
 // Start HTTP Server
-const server = app.listen(PORT, () => {
+// const server = app.listen(PORT, () => {
+//   console.log(`✅ Server is running on http://localhost:${PORT}`);
+// });
+
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
 });
 
 // WebSocket Server
-const wss = new WebSocket.Server({ port: WSPORT }, () => {
-  console.log(`✅ WebSocket server is running on ws://localhost:${WSPORT}`);
-});
+// const wss = new WebSocket.Server({ port: WSPORT }, () => {
+//   console.log(`✅ WebSocket server is running on ws://localhost:${WSPORT}`);
+// });
+const wss = new WebSocket.Server({ server });
+console.log(`✅ WebSocket server is running`);
 
 let activeTeachers = {};
 console.log("hhhhhhhhhhhhh",activeTeachers)
