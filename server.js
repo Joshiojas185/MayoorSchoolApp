@@ -353,9 +353,7 @@ const server = app.listen(PORT, "0.0.0.0", () => {
 });
 
 // WebSocket Server
-const wss = new WebSocket.Server({ port: WSPORT }, () => {
-  console.log(`✅ WebSocket server is running on ws://localhost:${WSPORT}`);
-});
+const wss = new WebSocket.Server({ server });
 
 let activeTeachers = {};
 let emailCounter = 1; // Counter for generating unique emails
