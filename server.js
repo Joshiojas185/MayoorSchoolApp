@@ -364,7 +364,7 @@ wss.on("connection", (ws) => {
     console.log("🔹 Received message:", message); // Debugging line
     try {
       // Since the message is a plain string, no need to parse JSON
-      const name = message.trim();
+      const name = message.toString().trim();
       
       if (!name) {
         throw new Error("Name is missing in the message");
