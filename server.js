@@ -526,6 +526,8 @@ function sendUpdatedList() {
       return;
     }
 
+    console.log("✅ Teacher list fetched from DB:", results); // Check if this logs properly
+
     const formattedResults = results.map((teacher) => {
       const lastSeen = new Date(teacher.last_seen);
       const currentDate = new Date();
@@ -538,9 +540,9 @@ function sendUpdatedList() {
       return teacher;
     });
 
-    console.log("📢 Sending updated teacher list:", formattedResults);
-    const data = JSON.stringify(formattedResults);
+    console.log("📢 Sending updated teacher list:", formattedResults); // Check if this logs properly
 
+    const data = JSON.stringify(formattedResults);
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(data);
