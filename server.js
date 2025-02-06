@@ -447,109 +447,109 @@
 
 //Commit to add email manually
 
-// const express = require("express");
-// const WebSocket = require("ws");
-// const db = require("./database");
+const express = require("express");
+const WebSocket = require("ws");
+const db = require("./database");
 
-// const app = express();
-// const PORT = process.env.PORT || 5000;
+const app = express();
+const PORT = process.env.PORT || 5000;
 
-// const server = app.listen(PORT, "0.0.0.0", () => {
-//     console.log(`✅ Server is running on http://localhost:${PORT}`);
-//   });
+const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`✅ Server is running on http://localhost:${PORT}`);
+  });
 
-// // Start WebSocket server directly
-// // const wss = new WebSocket.Server({ port: PORT }, () => {
-// //   console.log(`✅ WebSocket server running on ws://localhost:${PORT}`);
-// // });
-// const wss = new WebSocket.Server({ server });
-
-// let activeTeachers = {};
-
-// wss.on("connection", (ws) => {
-//   console.log("🔵 New client connected");
-
-//   ws.on("message", (message) => {
-//     console.log("🔹 Received message:", message);
-//     try {
-//       const { name, email } = JSON.parse(message);
-
-//       if (!name || !email) {
-//         throw new Error("Missing name or email in the message");
-//       }
-
-//       const currentTime = new Date();
-
-//       db.query(
-//         "INSERT INTO teachers (name, email, status, last_seen) VALUES (?, ?, 'active', ?) ON DUPLICATE KEY UPDATE status='active', last_seen=?",
-//         [name, email, currentTime, currentTime],
-//         (err) => {
-//           if (err) {
-//             console.error("❌ Error inserting/updating teacher in DB:", err);
-//             return;
-//           }
-//           activeTeachers[email] = ws;
-//           sendUpdatedList();
-//         }
-//       );
-//     } catch (error) {
-//       console.error("❌ Error handling message:", error.message);
-//     }
-//   });
-
-//   ws.on("close", () => {
-//     for (let email in activeTeachers) {
-//       if (activeTeachers[email] === ws) {
-//         const lastSeenTime = new Date();
-
-//         db.query(
-//           "UPDATE teachers SET status='inactive', last_seen=? WHERE email=?",
-//           [lastSeenTime, email],
-//           (err) => {
-//             if (err) {
-//               console.error("❌ Error updating teacher status in DB:", err);
-//             }
-//             delete activeTeachers[email];
-//             sendUpdatedList();
-//           }
-//         );
-//       }
-//     }
-//     console.log("🔴 A client disconnected");
-//   });
+// Start WebSocket server directly
+// const wss = new WebSocket.Server({ port: PORT }, () => {
+//   console.log(`✅ WebSocket server running on ws://localhost:${PORT}`);
 // });
+const wss = new WebSocket.Server({ server });
 
-// function sendUpdatedList() {
-//   db.query("SELECT name, email, status, last_seen FROM teachers", (err, results) => {
-//     if (err) {
-//       console.error("❌ Error fetching teacher list from DB:", err);
-//       return;
-//     }
+let activeTeachers = {};
 
-//     console.log("✅ Teacher list fetched from DB:", results); // Check if this logs properly
+wss.on("connection", (ws) => {
+  console.log("🔵 New client connected");
 
-//     const formattedResults = results.map((teacher) => {
-//       const lastSeen = new Date(teacher.last_seen);
-//       const currentDate = new Date();
+  ws.on("message", (message) => {
+    console.log("🔹 Received message:", message);
+    try {
+      const { name, email } = JSON.parse(message);
 
-//       if (lastSeen.toDateString() === currentDate.toDateString()) {
-//         teacher.last_seen = lastSeen.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-//       } else {
-//         teacher.last_seen = lastSeen.toLocaleString("en-US", { weekday: "short", hour: "2-digit", minute: "2-digit" });
-//       }
-//       return teacher;
-//     });
+      if (!name || !email) {
+        throw new Error("Missing name or email in the message");
+      }
 
-//     console.log("📢 Sending updated teacher list:", formattedResults); // Check if this logs properly
+      const currentTime = new Date();
 
-//     const data = JSON.stringify(formattedResults);
-//     wss.clients.forEach((client) => {
-//       if (client.readyState === WebSocket.OPEN) {
-//         client.send(data);
-//       }
-//     });
-//   });
-// }
+      db.query(
+        "INSERT INTO teachers (name, email, status, last_seen) VALUES (?, ?, 'active', ?) ON DUPLICATE KEY UPDATE status='active', last_seen=?",
+        [name, email, currentTime, currentTime],
+        (err) => {
+          if (err) {
+            console.error("❌ Error inserting/updating teacher in DB:", err);
+            return;
+          }
+          activeTeachers[email] = ws;
+          sendUpdatedList();
+        }
+      );
+    } catch (error) {
+      console.error("❌ Error handling message:", error.message);
+    }
+  });
+
+  ws.on("close", () => {
+    for (let email in activeTeachers) {
+      if (activeTeachers[email] === ws) {
+        const lastSeenTime = new Date();
+
+        db.query(
+          "UPDATE teachers SET status='inactive', last_seen=? WHERE email=?",
+          [lastSeenTime, email],
+          (err) => {
+            if (err) {
+              console.error("❌ Error updating teacher status in DB:", err);
+            }
+            delete activeTeachers[email];
+            sendUpdatedList();
+          }
+        );
+      }
+    }
+    console.log("🔴 A client disconnected");
+  });
+});
+
+function sendUpdatedList() {
+  db.query("SELECT name, email, status, last_seen FROM teachers", (err, results) => {
+    if (err) {
+      console.error("❌ Error fetching teacher list from DB:", err);
+      return;
+    }
+
+    console.log("✅ Teacher list fetched from DB:", results); // Check if this logs properly
+
+    const formattedResults = results.map((teacher) => {
+      const lastSeen = new Date(teacher.last_seen);
+      const currentDate = new Date();
+
+      if (lastSeen.toDateString() === currentDate.toDateString()) {
+        teacher.last_seen = lastSeen.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      } else {
+        teacher.last_seen = lastSeen.toLocaleString("en-US", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+      }
+      return teacher;
+    });
+
+    console.log("📢 Sending updated teacher list:", formattedResults); // Check if this logs properly
+
+    const data = JSON.stringify(formattedResults);
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(data);
+      }
+    });
+  });
+}
 
 
 // const express = require("express");
@@ -822,138 +822,138 @@
 
 
 // 2nd commit from gpt
-const express = require("express");
-const WebSocket = require("ws");
-const db = require("./database");
+// const express = require("express");
+// const WebSocket = require("ws");
+// const db = require("./database");
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+// const app = express();
+// const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server is running on http://localhost:${PORT}`);
-});
+// const server = app.listen(PORT, "0.0.0.0", () => {
+//   console.log(`✅ Server is running on http://localhost:${PORT}`);
+// });
 
-const wss = new WebSocket.Server({ server });
+// const wss = new WebSocket.Server({ server });
 
-let activeTeachers = {}; // Keeps track of active WebSocket connections
+// let activeTeachers = {}; // Keeps track of active WebSocket connections
 
-// Handle WebSocket connections
-wss.on("connection", (ws) => {
-  console.log("🔵 New client connected");
+// // Handle WebSocket connections
+// wss.on("connection", (ws) => {
+//   console.log("🔵 New client connected");
 
-  ws.on("message", (message) => {
-    console.log("🔹 Received message:", message);
-    try {
-      const { name, email, status } = JSON.parse(message);
+//   ws.on("message", (message) => {
+//     console.log("🔹 Received message:", message);
+//     try {
+//       const { name, email, status } = JSON.parse(message);
 
-      if (!name || !email || !status) {
-        throw new Error("Missing name, email, or status in the message");
-      }
+//       if (!name || !email || !status) {
+//         throw new Error("Missing name, email, or status in the message");
+//       }
 
-      const currentTime = new Date();
+//       const currentTime = new Date();
 
-      // Handle active status
-      if (status === "active") {
-        db.query(
-          "INSERT INTO teachers (name, email, status, last_seen) VALUES (?, ?, 'active', ?) ON DUPLICATE KEY UPDATE status='active', last_seen=?",
-          [name, email, currentTime, currentTime],
-          (err) => {
-            if (err) {
-              console.error("❌ Error updating teacher status:", err);
-              return;
-            }
-            activeTeachers[email] = ws;
-            sendUpdatedList();
-          }
-        );
-      }
-      // Handle inactive status
-      else if (status === "inactive") {
-        db.query(
-          "UPDATE teachers SET status='inactive', last_seen=? WHERE email=?",
-          [currentTime, email],
-          (err) => {
-            if (err) {
-              console.error("❌ Error updating teacher status:", err);
-              return;
-            }
-            delete activeTeachers[email];
-            sendUpdatedList();
-          }
-        );
-      }
-    } catch (error) {
-      console.error("❌ Error handling message:", error.message);
-    }
-  });
+//       // Handle active status
+//       if (status === "active") {
+//         db.query(
+//           "INSERT INTO teachers (name, email, status, last_seen) VALUES (?, ?, 'active', ?) ON DUPLICATE KEY UPDATE status='active', last_seen=?",
+//           [name, email, currentTime, currentTime],
+//           (err) => {
+//             if (err) {
+//               console.error("❌ Error updating teacher status:", err);
+//               return;
+//             }
+//             activeTeachers[email] = ws;
+//             sendUpdatedList();
+//           }
+//         );
+//       }
+//       // Handle inactive status
+//       else if (status === "inactive") {
+//         db.query(
+//           "UPDATE teachers SET status='inactive', last_seen=? WHERE email=?",
+//           [currentTime, email],
+//           (err) => {
+//             if (err) {
+//               console.error("❌ Error updating teacher status:", err);
+//               return;
+//             }
+//             delete activeTeachers[email];
+//             sendUpdatedList();
+//           }
+//         );
+//       }
+//     } catch (error) {
+//       console.error("❌ Error handling message:", error.message);
+//     }
+//   });
 
-  // Handle WebSocket disconnection
-  ws.on("close", () => {
-    let disconnectedEmail = null;
+//   // Handle WebSocket disconnection
+//   ws.on("close", () => {
+//     let disconnectedEmail = null;
 
-    // Find which teacher was disconnected
-    for (let email in activeTeachers) {
-      if (activeTeachers[email] === ws) {
-        disconnectedEmail = email;
-        delete activeTeachers[email];
-        break;
-      }
-    }
+//     // Find which teacher was disconnected
+//     for (let email in activeTeachers) {
+//       if (activeTeachers[email] === ws) {
+//         disconnectedEmail = email;
+//         delete activeTeachers[email];
+//         break;
+//       }
+//     }
 
-    if (disconnectedEmail) {
-      const lastSeenTime = new Date();
-      db.query(
-        "UPDATE teachers SET status='inactive', last_seen=? WHERE email=?",
-        [lastSeenTime, disconnectedEmail],
-        (err) => {
-          if (err) {
-            console.error("❌ Error updating teacher status:", err);
-          }
-          sendUpdatedList();
-        }
-      );
-    }
-    console.log("🔴 A client disconnected");
-  });
-});
+//     if (disconnectedEmail) {
+//       const lastSeenTime = new Date();
+//       db.query(
+//         "UPDATE teachers SET status='inactive', last_seen=? WHERE email=?",
+//         [lastSeenTime, disconnectedEmail],
+//         (err) => {
+//           if (err) {
+//             console.error("❌ Error updating teacher status:", err);
+//           }
+//           sendUpdatedList();
+//         }
+//       );
+//     }
+//     console.log("🔴 A client disconnected");
+//   });
+// });
 
-// Send the updated list of teachers to all connected WebSocket clients
-function sendUpdatedList() {
-  db.query("SELECT name, email, status, last_seen FROM teachers", (err, results) => {
-    if (err) {
-      console.error("❌ Error fetching teacher list from DB:", err);
-      return;
-    }
+// // Send the updated list of teachers to all connected WebSocket clients
+// function sendUpdatedList() {
+//   db.query("SELECT name, email, status, last_seen FROM teachers", (err, results) => {
+//     if (err) {
+//       console.error("❌ Error fetching teacher list from DB:", err);
+//       return;
+//     }
 
-    const uniqueTeachers = {};
-    results.forEach((teacher) => {
-      uniqueTeachers[teacher.email] = {
-        name: teacher.name,
-        status: teacher.status,
-        last_seen: formatLastSeen(teacher.last_seen),
-      };
-    });
+//     const uniqueTeachers = {};
+//     results.forEach((teacher) => {
+//       uniqueTeachers[teacher.email] = {
+//         name: teacher.name,
+//         status: teacher.status,
+//         last_seen: formatLastSeen(teacher.last_seen),
+//       };
+//     });
 
-    const formattedResults = Object.values(uniqueTeachers);
-    const data = JSON.stringify(formattedResults);
+//     const formattedResults = Object.values(uniqueTeachers);
+//     const data = JSON.stringify(formattedResults);
 
-    // Send to all connected clients
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(data);
-      }
-    });
-  });
-}
+//     // Send to all connected clients
+//     wss.clients.forEach((client) => {
+//       if (client.readyState === WebSocket.OPEN) {
+//         client.send(data);
+//       }
+//     });
+//   });
+// }
 
-// Helper function to format last seen time
-function formatLastSeen(lastSeen) {
-  const lastSeenDate = new Date(lastSeen);
-  const currentDate = new Date();
+// // Helper function to format last seen time
+// function formatLastSeen(lastSeen) {
+//   const lastSeenDate = new Date(lastSeen);
+//   const currentDate = new Date();
 
-  if (lastSeenDate.toDateString() === currentDate.toDateString()) {
-    return lastSeenDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  } else {
-    return lastSeenDate.toLocaleString("en-US", { weekday: "short", hour: "2-digit", minute: "2-digit" });
-  }
-}
+//   if (lastSeenDate.toDateString() === currentDate.toDateString()) {
+//     return lastSeenDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+//   } else {
+//     return lastSeenDate.toLocaleString("en-US", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+//   }
+// }
