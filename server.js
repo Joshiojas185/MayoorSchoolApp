@@ -686,6 +686,142 @@
 // }
 
 //Commit from GPT
+// const express = require("express");
+// const WebSocket = require("ws");
+// const db = require("./database");
+
+// const app = express();
+// const PORT = process.env.PORT || 5000;
+
+// const server = app.listen(PORT, "0.0.0.0", () => {
+//   console.log(`✅ Server is running on http://localhost:${PORT}`);
+// });
+
+// const wss = new WebSocket.Server({ server });
+
+// let activeTeachers = {};
+
+// wss.on("connection", (ws) => {
+//   console.log("🔵 New client connected");
+
+//   ws.on("message", (message) => {
+//     console.log("🔹 Received message:", message);
+//     try {
+//       const { name, email, status } = JSON.parse(message);
+
+//       if (!name || !email) {
+//         throw new Error("Missing name or email in the message");
+//       }
+
+//       const currentTime = new Date();
+
+//       if (status === "active") {
+//         // Mark as active in the database
+//         db.query(
+//           "INSERT INTO teachers (name, email, status, last_seen) VALUES (?, ?, 'active', ?) ON DUPLICATE KEY UPDATE status='active', last_seen=?",
+//           [name, email, currentTime, currentTime],
+//           (err) => {
+//             if (err) {
+//               console.error("❌ Error updating teacher status:", err);
+//               return;
+//             }
+//             activeTeachers[email] = ws;
+//             sendUpdatedList();
+//           }
+//         );
+//       } else if (status === "inactive") {
+//         // Mark as inactive in the database
+//         db.query(
+//           "UPDATE teachers SET status='inactive', last_seen=? WHERE email=?",
+//           [currentTime, email],
+//           (err) => {
+//             if (err) {
+//               console.error("❌ Error updating teacher status:", err);
+//               return;
+//             }
+//             delete activeTeachers[email]; // Remove from active list
+//             sendUpdatedList();
+//           }
+//         );
+//       }
+//     } catch (error) {
+//       console.error("❌ Error handling message:", error.message);
+//     }
+//   });
+
+//   ws.on("close", () => {
+//     let disconnectedEmail = null;
+
+//     for (let email in activeTeachers) {
+//       if (activeTeachers[email] === ws) {
+//         disconnectedEmail = email;
+//         delete activeTeachers[email]; // Remove from active list
+//         break;
+//       }
+//     }
+
+//     if (disconnectedEmail) {
+//       const lastSeenTime = new Date();
+//       db.query(
+//         "UPDATE teachers SET status='inactive', last_seen=? WHERE email=?",
+//         [lastSeenTime, disconnectedEmail],
+//         (err) => {
+//           if (err) {
+//             console.error("❌ Error updating teacher status:", err);
+//           }
+//           sendUpdatedList();
+//         }
+//       );
+//     }
+//     console.log("🔴 A client disconnected");
+//   });
+// });
+
+// function sendUpdatedList() {
+//   db.query("SELECT name, email, status, last_seen FROM teachers", (err, results) => {
+//     if (err) {
+//       console.error("❌ Error fetching teacher list from DB:", err);
+//       return;
+//     }
+
+//     console.log("✅ Teacher list fetched from DB:", results);
+
+//     const uniqueTeachers = {};
+//     results.forEach((teacher) => {
+//       uniqueTeachers[teacher.email] = {
+//         name: teacher.name,
+//         status: teacher.status,
+//         last_seen: formatLastSeen(teacher.last_seen),
+//       };
+//     });
+
+//     const formattedResults = Object.values(uniqueTeachers);
+//     console.log("📢 Sending updated teacher list:", formattedResults);
+
+//     const data = JSON.stringify(formattedResults);
+//     wss.clients.forEach((client) => {
+//       if (client.readyState === WebSocket.OPEN) {
+//         client.send(data);
+//       }
+//     });
+//   });
+// }
+
+// // Helper function to format last seen time
+// function formatLastSeen(lastSeen) {
+//   const lastSeenDate = new Date(lastSeen);
+//   const currentDate = new Date();
+
+//   if (lastSeenDate.toDateString() === currentDate.toDateString()) {
+//     return lastSeenDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+//   } else {
+//     return lastSeenDate.toLocaleString("en-US", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+//   }
+// }
+
+
+
+// 2nd commit from gpt
 const express = require("express");
 const WebSocket = require("ws");
 const db = require("./database");
@@ -699,8 +835,9 @@ const server = app.listen(PORT, "0.0.0.0", () => {
 
 const wss = new WebSocket.Server({ server });
 
-let activeTeachers = {};
+let activeTeachers = {}; // Keeps track of active WebSocket connections
 
+// Handle WebSocket connections
 wss.on("connection", (ws) => {
   console.log("🔵 New client connected");
 
@@ -709,14 +846,14 @@ wss.on("connection", (ws) => {
     try {
       const { name, email, status } = JSON.parse(message);
 
-      if (!name || !email) {
-        throw new Error("Missing name or email in the message");
+      if (!name || !email || !status) {
+        throw new Error("Missing name, email, or status in the message");
       }
 
       const currentTime = new Date();
 
+      // Handle active status
       if (status === "active") {
-        // Mark as active in the database
         db.query(
           "INSERT INTO teachers (name, email, status, last_seen) VALUES (?, ?, 'active', ?) ON DUPLICATE KEY UPDATE status='active', last_seen=?",
           [name, email, currentTime, currentTime],
@@ -729,8 +866,9 @@ wss.on("connection", (ws) => {
             sendUpdatedList();
           }
         );
-      } else if (status === "inactive") {
-        // Mark as inactive in the database
+      }
+      // Handle inactive status
+      else if (status === "inactive") {
         db.query(
           "UPDATE teachers SET status='inactive', last_seen=? WHERE email=?",
           [currentTime, email],
@@ -739,7 +877,7 @@ wss.on("connection", (ws) => {
               console.error("❌ Error updating teacher status:", err);
               return;
             }
-            delete activeTeachers[email]; // Remove from active list
+            delete activeTeachers[email];
             sendUpdatedList();
           }
         );
@@ -749,13 +887,15 @@ wss.on("connection", (ws) => {
     }
   });
 
+  // Handle WebSocket disconnection
   ws.on("close", () => {
     let disconnectedEmail = null;
 
+    // Find which teacher was disconnected
     for (let email in activeTeachers) {
       if (activeTeachers[email] === ws) {
         disconnectedEmail = email;
-        delete activeTeachers[email]; // Remove from active list
+        delete activeTeachers[email];
         break;
       }
     }
@@ -777,14 +917,13 @@ wss.on("connection", (ws) => {
   });
 });
 
+// Send the updated list of teachers to all connected WebSocket clients
 function sendUpdatedList() {
   db.query("SELECT name, email, status, last_seen FROM teachers", (err, results) => {
     if (err) {
       console.error("❌ Error fetching teacher list from DB:", err);
       return;
     }
-
-    console.log("✅ Teacher list fetched from DB:", results);
 
     const uniqueTeachers = {};
     results.forEach((teacher) => {
@@ -796,9 +935,9 @@ function sendUpdatedList() {
     });
 
     const formattedResults = Object.values(uniqueTeachers);
-    console.log("📢 Sending updated teacher list:", formattedResults);
-
     const data = JSON.stringify(formattedResults);
+
+    // Send to all connected clients
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(data);
